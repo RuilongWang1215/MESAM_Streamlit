@@ -1,13 +1,13 @@
 import streamlit as st
 from utils.data_loader import load_all_summary_data, prepare_cost_comparison_vs_base
-from utils.plot import (
+from utils.plot_cost import (
     plot_cost_comparison_by_municipality,
     plot_cost_change_pct_vs_base,
     plot_cost_change_abs_vs_base,
     plot_cost_change_heatmap_vs_base,
 )
 # -------------------------
-st.title("Overview")
+st.title("Total Cost Comparison Across Municipalities and Scenarios")
 
 # load summary data for all municipalities and scenarios
 df_summary = load_all_summary_data()
@@ -41,9 +41,9 @@ selected_scenarios = st.multiselect(
 filtered_data = df_summary[df_summary["scenario"].isin(selected_scenarios)]
 
 fig = plot_cost_comparison_by_municipality(filtered_data)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='content')
 st.subheader("Comparison Table - Total Costs")
-st.dataframe(df_summary, use_container_width=True)
+st.dataframe(df_summary, width='content')
 
 #--------------Comparison of cost change--------------------------
 st.markdown("---")
@@ -62,14 +62,14 @@ tab1, tab2, tab3 = st.tabs([
 
 with tab1:
     fig_pct = plot_cost_change_pct_vs_base(comparison_df)
-    st.plotly_chart(fig_pct, use_container_width=True)
+    st.plotly_chart(fig_pct, width='content')
 
 with tab2:
     fig_abs = plot_cost_change_abs_vs_base(comparison_df)
-    st.plotly_chart(fig_abs, use_container_width=True)
+    st.plotly_chart(fig_abs, width='content')
 
 with tab3:
     fig_heatmap = plot_cost_change_heatmap_vs_base(comparison_df)
-    st.plotly_chart(fig_heatmap, use_container_width=True)
+    st.plotly_chart(fig_heatmap, width='content')
 st.subheader("Comparison Table - Cost Changes")
-st.dataframe(comparison_df, use_container_width=True)
+st.dataframe(comparison_df, width='content')

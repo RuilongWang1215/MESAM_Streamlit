@@ -1,4 +1,5 @@
 from pathlib import Path
+import seaborn as sns
 
 DATA_DIR = Path("data")
 
@@ -36,3 +37,21 @@ region_dict = {
 6: 'Central Switzerland',
 7: 'Ticino'
 }
+
+colors = sns.color_palette("Set2", n_colors=7)
+region_color_dict = {
+    'Lake Geneva': colors[0],
+    'Espace Mittelland': colors[1],
+    'Northwest Switzerland': colors[2],
+    'Zurich': colors[3],
+    'East Switzerland': colors[4],
+    'Central Switzerland': colors[5],
+    'Ticino': colors[6]
+}
+
+flow_type_mapping = {
+        "elec": "electricity",
+        "CO2": "carbon dioxide",
+        "HW": "hot water",
+        "SH": "space heating",
+    }

@@ -1,11 +1,38 @@
 from pathlib import Path
 import pandas as pd
 from config import DATA_DIR, scenario_dict, NUTS2_dict
+from config import flow_type_mapping
 
+def sort_row(data: pd.DataFrame) -> pd.DataFrame:
+    scenario_order = list(scenario_dict.values())
+    data = data.sort_values(
+        by=["NUTS2", "municipality", "scenario"],
+        key=lambda x: x.map({v: i for i, v in enumerate(scenario_order)}) if x.name == "scenario" else x
+    )
+    return data
+
+def _clean_time_column(df: pd.DataFrame, time_col: str) -> pd.DataFrame:
+    # only keep year part if the time column contains datetime
+    df[time_col] = pd.to_datetime(df[time_col], errors='coerce').dt.year.fillna(df[time_col])
+    return df
+
+def _clean_investment_data(df: pd.DataFrame) -> pd.DataFrame:
+    investment_cols = [col for col in df.columns if "invested_available_unit" in col.lower()]
+    techs = df['name'].unique()
+    for tech in techs: 
+        sub_df = df[df['name'] == tech]
+        # if all the investment cols for this tech are zero for all years, then we can drop this tech from the table
+        if sub_df[investment_cols].sum().sum() == 0:
+            df = df[df['name'] != tech]
+    return df
+
+def _rename_investment_columns(df: pd.DataFrame) -> pd.DataFrame:
+    # rename scale_MW to scale per unit (MW)
+    df = df.rename(columns={'scale_MW': 'scale per unit (MW)'})
+    return df
 
 def get_municipality_list():
     return sorted([p.name for p in DATA_DIR.iterdir() if p.is_dir()])
-
 
 def get_scenarios_for_municipality(municipality):
     municipality_path = DATA_DIR / municipality / "operation"
@@ -13,31 +40,89 @@ def get_scenarios_for_municipality(municipality):
         return []
     return sorted([p.name for p in municipality_path.iterdir() if p.is_dir()])
 
-
 def load_summary_data(municipality):
     file_path = DATA_DIR / municipality / "cost" / "cost_report.xlsx"
     if file_path.exists():
         return pd.read_excel(file_path)
     return pd.DataFrame()
 
-
-def load_investment_data(municipality, scenario):
+def load_aggregated_investment_data(municipality):
     file_path = DATA_DIR / municipality / "investment_decision" / "aggregated_investment_decision.xlsx"
     if file_path.exists():
-        return pd.read_excel(file_path)
+        df = pd.read_excel(file_path)
+        df = _clean_time_column(df, "time")
+        df = _clean_investment_data(df)
+        df = _rename_investment_columns(df)
+        # put name, scale per unit (MW), time in the front 
+        cols = df.columns.tolist()
+        new_order = ["name", "scale per unit (MW)", "time"] + [col for col in cols if col not in ["name", "scale per unit (MW)", "time"]]
+        df = df[new_order]
+        return df
+    
     return pd.DataFrame()
 
+def get_operation_level(municipality:str, scenario_name: str):
+    levels = []
+    path = DATA_DIR / municipality / "operation" / scenario_name 
+    # read the levels from the file names in this folder 
+    # level is the part after first _ 
+    if path.exists():
+        for file in path.iterdir():
+            if file.is_file() and file.suffix in [".xlsx", ".csv"]:
+                level = file.stem.split("_")[1] if "_" in file.stem else file.stem
+                levels.append(level)
+    levels = list(set(levels))
+    return sorted(levels)
 
-def load_operation_data(municipality, scenario):
-    pass
+def get_flow_types(municipality:str, scenario_name: str, level: str):
+    flow_types = []
+    path = DATA_DIR / municipality / "operation" / scenario_name 
+    if path.exists():
+        for file in path.iterdir():
+            if file.is_file() and file.suffix in [".xlsx", ".csv"] and level in file.stem:
+                parts = file.stem.split("_")
+                flow_type = parts[0]
+                flow_types.append(flow_type)
+    flow_types = list(set(flow_types))
+    flow_types = [flow_type_mapping.get(ft, ft) for ft in flow_types]
+    return sorted(flow_types)
+
+def load_operation_data(municipality, scenario, level, flow_type, sub_type=None):
+    path = DATA_DIR / municipality / "operation" / scenario
+    if path.exists():
+        flow_type_key = None
+        for key in flow_type_mapping.keys():
+            if flow_type_mapping[key] == flow_type:
+                flow_type_key = key
+                break
+        file_name = f"{flow_type_key}_{level}_level_data.xlsx"
+        file_path = path / file_name
+        if file_path.exists():
+            if sub_type is not None:
+                df = pd.read_excel(file_path, sheet_name=f"{sub_type}")
+            else:
+                df = pd.read_excel(file_path)
+            return df
     return pd.DataFrame()
 
-
-import pandas as pd
+def get_sub_type(municipality, scenario, flow_type, level = "building"):
+    # read the sheet names in the file flow_type_building_level_data.xlsx, the building types are the part after second _ and before _level
+    path = DATA_DIR / municipality / "operation" / scenario
+    if path.exists():
+        flow_type_key = None
+        for key in flow_type_mapping.keys():
+            if flow_type_mapping[key] == flow_type:
+                flow_type_key = key
+                break
+        file_name = f"{flow_type_key}_{level}_level_data.xlsx"
+        file_path = path / file_name
+        if file_path.exists():
+            xls = pd.ExcelFile(file_path)
+            sub_types = xls.sheet_names
+            return sorted(list(set(sub_types)))    
 
 def load_all_summary_data():
     rows = []
-
     for municipality in get_municipality_list():
         df = load_summary_data(municipality)
         if df is not None and not df.empty:
@@ -86,7 +171,7 @@ def load_all_summary_data():
     existing_priority_cols = [col for col in priority_cols if col in all_data.columns]
     remaining_cols = [col for col in all_data.columns if col not in existing_priority_cols]
     all_data = all_data[existing_priority_cols + remaining_cols]
-
+    all_data = sort_row(all_data)
     return all_data
 
 def prepare_cost_comparison_vs_base(all_data: pd.DataFrame) -> pd.DataFrame:
@@ -133,9 +218,12 @@ def prepare_cost_comparison_vs_base(all_data: pd.DataFrame) -> pd.DataFrame:
     comparison["base_cost"] = comparison["base_cost"].round(2)
     comparison["cost_change"] = comparison["cost_change"].round(2)
     comparison["cost_change_pct"] = comparison["cost_change_pct"].round(2)
-
+    comparison = get_non_base_cost_comparison(comparison)
+    comparison['NUTS2'] = comparison['municipality'].map(NUTS2_dict).fillna("Unknown")
     return comparison
 
 def get_non_base_cost_comparison(comparison_df: pd.DataFrame) -> pd.DataFrame:
     data = comparison_df.copy()
     return data[data["scenario"] != "Baseline"].copy()
+
+#=========Load investment decision data for a given muunicipality ============================

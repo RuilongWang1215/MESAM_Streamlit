@@ -10,9 +10,9 @@ st.set_page_config(
 # -------------------------
 # Header
 # -------------------------
-st.title("⚡Impact of consumer preferences on energy system optimization across Swiss municipalities")
+st.title("Impact of consumer preferences on energy system optimization across Swiss municipalities")
 st.caption("Interactive dashboard for exploring optimization results across municipalities and scenarios.")
-
+st.image("figures/swiss_nuts2_municipalities_map.png", width='content')
 st.markdown("---")
 
 # -------------------------
@@ -33,9 +33,9 @@ with col1:
 
     st.markdown(
         """
-        - **Overview**: compare total system costs across municipalities and scenarios
-        - **Investment Decisions**: analyze technology investment choices 
-        - **Operation Decisions**: inspect operation and dispatch results  
+        - **Total cost**: compare total system costs across municipalities and scenarios
+        - **Investment decision**: analyze technology investment choices 
+        - **Operational dispatch**: inspect operation and dispatch results at different levels of detail
         """
     )
 
