@@ -34,8 +34,8 @@ with col1:
     st.markdown(
         """
         - **Total cost**: compare total system costs across municipalities and scenarios
-        - **Investment decision**: analyze technology investment choices 
-        - **Operational dispatch**: inspect operation and dispatch results at different levels of detail
+        - **Investment decision**: analyze technology investment choices for each municipality
+        - **Flow balance**: inspect flow balances at different levels of detail for each municipality
         """
     )
 

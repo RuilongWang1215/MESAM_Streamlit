@@ -1,4 +1,4 @@
 *.jpg
-*.png
 *.pyc
 __pycache__/
+visualization_stacked

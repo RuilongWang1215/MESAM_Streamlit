@@ -15,13 +15,23 @@ municipality = sidebar_state["municipality"]
 st.title(f"Municipality: {municipality}")
 
 #====First part: show the aggregated investment decision data for the selected municipality and visualization===========
-st.write(
-    "This page presents the operational flow balance for the selected municipality. "
-    "You can explore different flow types, including electricity, heat, and CO₂, "
-    "as well as balances at different aggregation levels, such as municipality, district, "
-    "and building archetype. "
-    "All values are reported in MWh. A positive balance indicates a surplus, "
-    "while a negative balance indicates a demand."
+st.markdown(
+    """
+This page presents the operational flow balance for the selected municipality.
+To explore the results:
+
+1. Select a **scenario**.
+2. Choose the **node level**: building, district, or municipality.
+3. Select a **flow type**: electricity, heat, or CO₂.
+4. Choose the **year** and **season**.
+
+A typical week for the selected season will be displayed.  
+Hover over the bars to see the exact values.
+
+All values are reported in **MWh**:
+- A **positive** balance indicates a surplus.
+- A **negative** balance indicates demand.
+"""
 )
 
 scenario = st.selectbox("Scenario", scenario_dict.values())# get scenario_key from value 
