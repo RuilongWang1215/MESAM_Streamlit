@@ -3,7 +3,7 @@ import seaborn as sns
 import plotly.graph_objects as go
 from config import scenario_dict
 
-def color_picker(node_name: str)-> str:
+def color_picker(node_name: str, level=None, index=None)-> str:
     housing_type_dict = {
         "MFH_until_2004": 'brown',
         "MFH_2005-2014": 'salmon',
@@ -45,6 +45,18 @@ def color_picker(node_name: str)-> str:
         return "grey"
     if node_name == "demand":
         return "red"
+    elif level == "building" and node_name.startswith("DH_line"):
+        return "cyan"
+    elif level in ["building", "district"] and node_name.startswith("elec_line") and '_b' not in node_name:
+        return "darkgoldenrod"
+    elif level== "municipality" and node_name.startswith("elec_line") and '_b' not in node_name:
+        # select color based on index to differentiate lines in municipality level
+        if index is not None:
+            # generate 9 colors 
+            line_colors = sns.color_palette("tab10", n_colors=10)
+            return line_colors[index % 10]
+        else:
+            return "darkgoldenrod"
     elif any(k in node_name for k in housing_type_dict.keys()):
         for key, color in housing_type_dict.items():
             if key in node_name:

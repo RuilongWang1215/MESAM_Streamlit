@@ -1,6 +1,6 @@
 import plotly.graph_objects as go
 import pandas as pd
-
+import streamlit as st
 def _to_plotly_color(color):
     if isinstance(color, tuple):
         return f"rgb({int(color[0]*255)}, {int(color[1]*255)}, {int(color[2]*255)})"
@@ -27,7 +27,7 @@ def plot_operation_plotly(
     )
 
     node_order = plot_df["node_name"].drop_duplicates().tolist()
-
+    district_elec_nodes = [node for node in node_order if node.startswith("elec_line") and "_b" not in node]
     fig = go.Figure()
 
     for node in node_order:
@@ -36,7 +36,11 @@ def plot_operation_plotly(
             {"node_name": node, "value": 0}
         )
 
-        color = color_func(node) if color_func is not None else None
+        if node in district_elec_nodes:
+            node_index = district_elec_nodes.index(node)
+        else:
+            node_index = 0
+        color = color_func(node, layer, node_index) if color_func is not None else None    
         color = _to_plotly_color(color) if color is not None else None
 
         fig.add_trace(
