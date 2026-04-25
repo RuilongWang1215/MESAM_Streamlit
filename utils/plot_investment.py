@@ -62,8 +62,12 @@ def color_picker(node_name: str, level=None, index=None)-> str:
             if key in node_name:
                 return color
     elif "import" in node_name:
+        if "CO2" in node_name:
+            return "darkgreen"
         return "darkgoldenrod"
     elif "export" in node_name:
+        if "CO2" in node_name:
+            return "darkgrey"
         return "crimson"
     else:
         for key, color in technology_color_dict.items():

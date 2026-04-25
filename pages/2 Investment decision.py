@@ -1,6 +1,7 @@
 import streamlit as st
+import pandas as pd
 from components.sidebar import render_sidebar
-from utils.data_loader import load_aggregated_investment_data
+from utils.data_loader import load_aggregated_investment_data, load_re_potential
 from utils.processing import (
     prepare_investment_stacked_data,
     prepare_stacked_pivot_table,
@@ -57,11 +58,54 @@ def render_technology_type_grid(
             else:
                 st.info(f"No data for {technology_label} - {scenario_dict.get(scenario, scenario)}")
 
+def render_re_potential_cards(potential_table):
+    if potential_table.empty:
+        st.warning("No renewable potential data found for this municipality.")
+        return
 
+    tech_mapping = {
+        "GPV": ("☀️", "Ground PV"),
+        "RTPV": ("🏠☀️", "Rooftop PV"),
+        "WT": ("🌀", "Wind Turbine"),
+    }
+
+    def format_tech(col_name):
+        tech_code = col_name.split("_")[0]
+        return tech_mapping.get(tech_code, ("⚡", tech_code))
+
+    potential_cols = [c for c in potential_table.columns if c != "scenario"]
+
+    for i in range(0, len(potential_table), 2):
+        cols = st.columns(2)
+
+        for j, container in enumerate(cols):
+            if i + j >= len(potential_table):
+                continue
+
+            row = potential_table.iloc[i + j]
+
+            with container:
+                st.markdown(f"**{row['scenario']}**")
+
+                for col in potential_cols:
+                    value = row[col]
+                    if pd.isna(value):
+                        continue
+
+                    icon, tech_name = format_tech(col)
+                    st.write(f"{icon} {tech_name}: {value:,.2f} MW")
+                
 sidebar_state = render_sidebar()
 municipality = sidebar_state["municipality"]
 st.title(f"Municipality: {municipality}")
-
+#=======Renewable potential ============================
+st.subheader("Renewable Potential")
+potential_table = load_re_potential(municipality)
+if potential_table.empty:
+    st.warning("No renewable potential data found for this municipality.")
+else:
+    render_re_potential_cards(potential_table)
+st.markdown("---")
 #====First part: show the aggregated investment decision data for the selected municipality and visualization===========
 st.subheader("Aggregated Investment Decision Data")
 st.write(

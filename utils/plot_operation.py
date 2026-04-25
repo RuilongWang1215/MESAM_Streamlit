@@ -13,9 +13,13 @@ def plot_operation_plotly(
     plot_df: pd.DataFrame,
     tag: str,
     color_func=None,
+    electrolyzer=False,
 ):
     unit = "t" if commodity_type == "carbon dioxide" else "MWh"
-
+    # if electrolyzer is False and the node name contains electrolyzer, rename it to "curtailment"
+    if not electrolyzer:
+        plot_df["node_name"] = plot_df["node_name"].apply(
+            lambda x: "curtailment" if "electrolyzer" in x.lower() else x)
     if plot_df.empty:
         return go.Figure()
 

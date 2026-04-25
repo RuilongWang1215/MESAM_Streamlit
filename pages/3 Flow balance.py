@@ -8,7 +8,7 @@ from utils.processing import filter_flow_time
 from utils.plot_investment import color_picker
 from utils.plot_operation import plot_operation_plotly 
 from utils.processing import operation_data_preprocessing, prepare_operation_plot_data
-
+from utils.data_loader import electrolyzer_investment_decision
 
 sidebar_state = render_sidebar()
 municipality = sidebar_state["municipality"]
@@ -34,6 +34,8 @@ All values are reported in **MWh**:
 """
 )
 
+
+electrolyzer_bool = electrolyzer_investment_decision(municipality)
 scenario = st.selectbox("Scenario", scenario_dict.values())# get scenario_key from value 
 scenario_key = None
 for key, value in scenario_dict.items():
@@ -75,6 +77,7 @@ if scenario_key and node_level and flow_type:
             plot_df=plot_df,
             tag=f"{node_level} - {flow_type}",
             color_func=color_picker,
+            electrolyzer = electrolyzer_bool,
         )
 
         st.plotly_chart(fig, use_container_width=True)

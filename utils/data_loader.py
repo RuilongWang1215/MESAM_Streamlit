@@ -58,8 +58,17 @@ def load_aggregated_investment_data(municipality):
         new_order = ["name", "scale per unit (MW)", "time"] + [col for col in cols if col not in ["name", "scale per unit (MW)", "time"]]
         df = df[new_order]
         return df
-    
     return pd.DataFrame()
+
+def electrolyzer_investment_decision(municipality):
+    # input: municipality name
+    # output: boolean value indicating whether there is any investment in electrolyzer
+    df = load_aggregated_investment_data(municipality)
+    if df.empty:
+        return False
+    if "electrolyzer" in df["name"].str.lower().values:
+        return True
+    return False
 
 def get_operation_level(municipality:str, scenario_name: str):
     levels = []
@@ -226,4 +235,28 @@ def get_non_base_cost_comparison(comparison_df: pd.DataFrame) -> pd.DataFrame:
     data = comparison_df.copy()
     return data[data["scenario"] != "Baseline"].copy()
 
-#=========Load investment decision data for a given muunicipality ============================
+def load_re_potential(municipality):
+    data = pd.read_excel(DATA_DIR / "summary_table_by_sheet.xlsx")
+    data = data[data["muni_name"].eq(municipality)]
+
+    potential_cols = data.filter(regex="(?i)potential").columns
+
+    potentials = {
+        "Baseline": "base_scenario",
+        "Discount Rate": "base_scenario",
+        "Technical Potential": "Technical_potential_scenario",
+        "All": "Technical_potential_scenario"
+    }
+
+    rows = []
+    for scenario in scenario_dict.values():
+        sheet = potentials.get(scenario)
+        if sheet is None:
+            continue
+
+        values = data.loc[data["sheet_name"].eq(sheet), potential_cols].iloc[0]
+        values.fillna(0, inplace=True)  
+        rows.append({"scenario": scenario, **values.to_dict()})
+
+    return pd.DataFrame(rows)
+        
