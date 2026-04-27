@@ -8,8 +8,8 @@ DEFAULT_PAGE_SIZE = "wide"
 
 scenario_dict = {
     "base": "Baseline",
-    "cp_cu": "Technical Potential",
     "cp_dr": "Discount Rate",
+    "cp_cu": "Technical Potential",
     "all": "All"
 }
 
