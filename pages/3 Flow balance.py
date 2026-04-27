@@ -43,7 +43,7 @@ for key, value in scenario_dict.items():
 
 levels = get_operation_level(municipality, scenario_key)
 if levels:
-    node_level = st.selectbox("Node level", levels, index=1)
+    node_level = st.selectbox("Node level", levels, index=0)
 
 flow_types = get_flow_types(municipality, scenario_key, node_level)
 if flow_types:

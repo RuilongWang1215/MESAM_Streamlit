@@ -81,7 +81,7 @@ def get_operation_level(municipality:str, scenario_name: str):
                 level = file.stem.split("_")[1] if "_" in file.stem else file.stem
                 levels.append(level)
     levels = list(set(levels))
-    return sorted(levels)
+    return sorted(levels, reverse=True) # show building first, then district, then municipality
 
 def get_flow_types(municipality:str, scenario_name: str, level: str):
     flow_types = []
