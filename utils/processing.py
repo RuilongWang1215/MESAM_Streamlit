@@ -1,20 +1,23 @@
+from turtle import st
+from config import scenario_dict
 import pandas as pd
-
+import os 
 def add_tech_label(df):
     df = df.copy()
 
     def classify_technology(name):
-        if (
-            (("SH" in name or "HW" in name or "DH" in name) and "retrofit" not in name)
-            or name in ["BLVL_HotWaterTank", "DLVL_HotWaterTank"]
-        ):
-            return "SH_HW_and_storage"
+        if ("SH" in name or "HW" in name or "DH" in name) and ("retrofit" not in name):
+            return "SH_HW"
         elif "retrofit" in name:
             return "retrofit"
         elif "H2" in name:
             return "Hydrogen"
+        elif 'HotWaterTank' in name:
+            return "Heat_storage"
+        elif any(k in name for k in ["Li-ion", "NaS", "NaNiCl", "VRF"]):
+            return "Battery"
         else:
-            return "RE_storage"
+            return "RE"
 
     df["technology_type"] = df["name"].apply(classify_technology)
     return df
@@ -90,10 +93,12 @@ def prepare_stacked_pivot_table(df, scenario, technology_type, value_mode="absol
 
 def get_display_technology_name(technology_type):
     mapping = {
-        "RE_storage": "Renewable Energy and Battery Storage",
-        "SH_HW_and_storage": "Space Heating, Hot Water and Heat Storage",
+        "RE": "Renewable Energy Technologies",
+        "SH_HW": "Space Heating and Hot Water",
         "retrofit": "Retrofit",
         "Hydrogen": "Hydrogen Related Technologies",
+        "Heat_storage": "Heat Storage",
+        "Battery": "Battery Storage",
     }
     return mapping.get(technology_type, technology_type)
 
@@ -200,3 +205,90 @@ def prepare_operation_plot_data(operation_data: pd.DataFrame) -> pd.DataFrame:
     long_df["time_label"] = long_df["time"].dt.strftime("%a %H:%M")
 
     return long_df
+
+def calculate_independent_index(
+    municipality,
+    scenario_key):
+    weight_factors = {
+        "HW_GasBoiler": 0.79,
+        "SH_GasBoiler": 0.94,
+        "SH_HydrogenBoiler": 0.88,
+        "SH_WoodBoiler": 0.72,
+        "SH_OilBoiler": 0.90,
+        "HW_OilBoiler": 0.75,
+        "elec_import_unit": 1.00,
+    }
+
+    import_sum_path = os.path.join(
+        "data",
+        municipality,
+        "operation",
+        scenario_key,
+        "energy_import_flow_municipality_level_data.xlsx",
+    )
+
+    if not os.path.exists(import_sum_path):
+        return pd.DataFrame(columns=["year-month", "independent_index", "scenario"])
+
+    time_series_df = pd.read_excel(import_sum_path)
+
+    if "time" not in time_series_df.columns or "total_demand_MW" not in time_series_df.columns:
+        raise ValueError("Input file must contain 'time' and 'total_demand_MW' columns.")
+
+    time_series_df["time"] = pd.to_datetime(time_series_df["time"], errors="coerce")
+    time_series_df = time_series_df.dropna(subset=["time"]).copy()
+
+    time_series_df["total_demand_MW"] = pd.to_numeric(
+        time_series_df["total_demand_MW"],
+        errors="coerce",
+    ).fillna(0)
+
+    import_cols = [
+        col for col in time_series_df.columns
+        if col not in ["time", "total_demand_MW"]
+    ]
+
+    for col in import_cols:
+        time_series_df[col] = pd.to_numeric(
+            time_series_df[col],
+            errors="coerce",
+        ).fillna(0)
+
+    # Calculate weighted import for each time step
+    time_series_df["weighted_import"] = sum(
+        time_series_df[col] * weight_factors.get(col, 1)
+        for col in import_cols
+    )
+
+    # Keep the column name as "year-month", but use quarterly labels
+    time_series_df["year-month"] = (
+        time_series_df["time"].dt.year.astype(str)
+        + "-Q"
+        + time_series_df["time"].dt.quarter.astype(str)
+    )
+
+    # Aggregate first, then calculate independent index
+    result_df = (
+        time_series_df
+        .groupby("year-month", as_index=False)
+        .agg(
+            total_demand_MW=("total_demand_MW", "sum"),
+            weighted_import=("weighted_import", "sum"),
+        )
+    )
+
+    result_df["independent_index"] = result_df.apply(
+        lambda row: 1
+        if row["total_demand_MW"] == 0
+        else 1 - row["weighted_import"] / row["total_demand_MW"],
+        axis=1,
+    )
+
+    result_df["independent_index"] = result_df["independent_index"].clip(
+        lower=0,
+        upper=1,
+    )
+
+    result_df["scenario"] = scenario_dict.get(scenario_key, scenario_key)
+
+    return result_df[["year-month", "independent_index", "scenario"]]

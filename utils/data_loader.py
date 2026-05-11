@@ -24,6 +24,8 @@ def _clean_investment_data(df: pd.DataFrame) -> pd.DataFrame:
         # if all the investment cols for this tech are zero for all years, then we can drop this tech from the table
         if sub_df[investment_cols].sum().sum() == 0:
             df = df[df['name'] != tech]
+    # delete rows with DH_lines in name 
+    df = df[~df['name'].str.contains("DH_line", case=False, na=False)]
     return df
 
 def _rename_investment_columns(df: pd.DataFrame) -> pd.DataFrame:

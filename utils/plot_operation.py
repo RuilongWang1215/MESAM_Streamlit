@@ -86,3 +86,79 @@ def plot_operation_plotly(
     for i in range(1, len(plot_df["time_label"].unique()) // 24):
         fig.add_vline(x=i * 24 - 0.5, line_width=1, line_dash="dash", line_color="lightgray")
     return fig
+
+def visualize_independent_index(independent_index_df):
+    df = independent_index_df.copy()
+
+    # 先用于排序
+    df["year_month_dt"] = pd.to_datetime(df["year-month"])
+
+    # 再转成字符串，作为等距的 category x-axis
+    df["year_month_str"] = df["year_month_dt"].dt.strftime("%Y-%m")
+
+    # 保证顺序正确
+    category_order = (
+        df[["year_month_dt", "year_month_str"]]
+        .drop_duplicates()
+        .sort_values("year_month_dt")["year_month_str"]
+        .tolist()
+    )
+
+    df = df.sort_values(["year_month_dt", "scenario"])
+
+    fig_index = go.Figure()
+
+    scenarios = df["scenario"].unique()
+
+    for scenario in scenarios:
+        sub_df = df[df["scenario"] == scenario]
+
+        fig_index.add_trace(
+            go.Scatter(
+                x=sub_df["year_month_str"],
+                y=sub_df["independent_index"],
+                name=scenario,
+                hovertemplate=(
+                    "Scenario: " + str(scenario) + "<br>"
+                    "Year-Month: %{x}<br>"
+                    "Independent Index: %{y:.2f}<extra></extra>"
+                ),
+            )
+        )
+
+    fig_index.update_layout(
+        title="Independent Index Over Time",
+        xaxis_title="Year-Month",
+        yaxis_title="Independent Index",
+        template="plotly_white",
+        height=500,
+        barmode="group",
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=-0.25,
+            xanchor="center",
+            x=0.5,
+            font=dict(size=9),
+            title_font=dict(size=10),
+        ),
+        margin=dict(l=40, r=20, t=70, b=120),
+        bargap=0.15,      
+        bargroupgap=0.05  
+    )
+
+    fig_index.update_xaxes(
+        type="category",
+        categoryorder="array",
+        categoryarray=category_order,
+        tickangle=45
+    )
+
+    fig_index.update_yaxes(
+        showgrid=True,
+        zeroline=True,
+        zerolinewidth=1
+    )
+
+    st.plotly_chart(fig_index, use_container_width=True)

@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import os
 from components.sidebar import render_sidebar
 from utils.data_loader import load_aggregated_investment_data, load_re_potential
 from utils.processing import (
@@ -24,7 +25,7 @@ def render_technology_type_grid(
     df_prepared = prepare_investment_stacked_data(df_raw)
     technology_label = get_display_technology_name(technology_type)
     if df_prepared[df_prepared["technology_type"] == technology_type].empty:
-        return 
+        return False
     global_ymax = None
     if value_mode == "absolute":
         global_ymax = compute_global_capacity_max(df_prepared, technology_type)
@@ -57,6 +58,7 @@ def render_technology_type_grid(
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info(f"No data for {technology_label} - {scenario_dict.get(scenario, scenario)}")
+    return True
 
 def render_re_potential_cards(potential_table):
     if potential_table.empty:
@@ -120,41 +122,68 @@ else:
     kind = st.selectbox("Plot type", ["bar", "area"])
     value_mode = st.selectbox("Value mode", ["absolute", "percentage"])
 
-    render_technology_type_grid(
+    plot = render_technology_type_grid(
         df_raw=data,
-        technology_type="RE_storage",
+        technology_type="RE",
         scenario_order=scenario_order,
         kind=kind,
         value_mode=value_mode
     )
-
     st.markdown("---")
-
-    # 再显示第二个 technology type
-    render_technology_type_grid(
+    
+    # battery
+    plot = render_technology_type_grid(
         df_raw=data,
-        technology_type="SH_HW_and_storage",
+        technology_type="Battery",
         scenario_order=scenario_order,
         kind=kind,
         value_mode=value_mode
     )
-    
-    render_technology_type_grid(
+    if plot: 
+        st.markdown("---")
+
+    # space heating and hot water
+    plot = render_technology_type_grid(
+        df_raw=data,
+        technology_type="SH_HW",
+        scenario_order=scenario_order,
+        kind=kind,
+        value_mode=value_mode
+    )
+    if plot:
+        st.markdown("---")
+
+    # heat storage
+    plot = render_technology_type_grid(
+        df_raw=data,
+        technology_type="Heat_storage",
+        scenario_order=scenario_order,
+        kind=kind,
+        value_mode=value_mode
+    )
+    if plot:
+        st.markdown("---")
+
+    # retrofit
+    plot = render_technology_type_grid(
         df_raw=data,
         technology_type="retrofit",
         scenario_order=scenario_order,
         kind=kind,
         value_mode=value_mode
     )
-    
-    render_technology_type_grid(
+    if plot:
+        st.markdown("---")
+
+    # hydrogen related technologies
+    plot = render_technology_type_grid(
         df_raw=data,
         technology_type="Hydrogen",
         scenario_order=scenario_order,
         kind=kind,
         value_mode=value_mode
     )
-    
-st.markdown("---")
+    if plot:
+        st.markdown("---")
 
 

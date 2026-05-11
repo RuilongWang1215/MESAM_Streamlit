@@ -370,7 +370,6 @@ def plot_cost_change_heatmap_vs_base(comparison_df: pd.DataFrame):
         pivot_df,
         text_auto=".1f",
         aspect="auto",
-        color_continuous_scale="RdBu_r",
         origin="lower",
         title="Cost Change Relative to Base Scenario (%)"
     )

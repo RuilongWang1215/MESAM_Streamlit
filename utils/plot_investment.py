@@ -17,8 +17,8 @@ def color_picker(node_name: str, level=None, index=None)-> str:
     technology_color_dict = {
         "BLVL_HotWaterTank": default_colors[0],
         "DLVL_HotWaterTank": "teal",
-        "DLVL_NMC": default_colors[9],
-        "BLVL_VanadiumRedox": default_colors[10],
+        "DLVL_NaNiCl": default_colors[9],
+        "DLVL_VRF": default_colors[10],
         "SH_HPAS": default_colors[2],
         "SH_HPGS": default_colors[3],
         "DH_HP_Water": "cyan",
@@ -30,6 +30,7 @@ def color_picker(node_name: str, level=None, index=None)-> str:
         "RE_GPV": "gold",
         "RE_WT": "limegreen",
         "DLVL_Li-ion": default_colors[12],
+        "BLVL_Li-ion": default_colors[1],
         "DLVL_NaS": default_colors[13],
         "SH_roof_retrofit": "thistle",
         "SH_wall_retrofit": default_colors[15],

@@ -2,12 +2,12 @@ import streamlit as st
 from components.sidebar import render_sidebar
 from config import scenario_dict
 from utils.data_loader import get_operation_level, get_flow_types, load_operation_data, get_sub_type
-import datetime as dt
 import pandas as pd
+import os
 from utils.processing import filter_flow_time
 from utils.plot_investment import color_picker
-from utils.plot_operation import plot_operation_plotly 
-from utils.processing import operation_data_preprocessing, prepare_operation_plot_data
+from utils.plot_operation import plot_operation_plotly, visualize_independent_index
+from utils.processing import operation_data_preprocessing, prepare_operation_plot_data, calculate_independent_index
 from utils.data_loader import electrolyzer_investment_decision
 
 sidebar_state = render_sidebar()
@@ -36,6 +36,9 @@ All values are reported in **MWh**:
 
 
 electrolyzer_bool = electrolyzer_investment_decision(municipality)
+
+st.markdown("---")
+st.subheader("Operational Flow Balance Visualization")
 scenario = st.selectbox("Scenario", scenario_dict.values())# get scenario_key from value 
 scenario_key = None
 for key, value in scenario_dict.items():
@@ -81,3 +84,29 @@ if scenario_key and node_level and flow_type:
         )
 
         st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("---")
+# ====Second part: show the independent index for the selected municipality and visualization===========
+st.subheader("Independent Index Over Time")
+# first check if the independent index data already exists, if not calculate it and save to excel
+if not os.path.exists("processed_output/SSI"):
+    os.makedirs("processed_output/SSI")
+    
+independent_index_path = os.path.join(
+    "processed_output","SSI", f"SSI_{municipality}_data.xlsx"
+)
+
+if os.path.exists(independent_index_path):
+    total_df = pd.read_excel(independent_index_path)
+else:
+    total_df = pd.DataFrame()
+    for scenario in scenario_dict.keys():
+        independent_index_df = calculate_independent_index(municipality, scenario)
+        total_df = pd.concat([total_df, independent_index_df], ignore_index=True)
+    
+if total_df.empty:
+    st.warning("No data available to calculate the independent index.")
+else:
+    total_df.to_excel(independent_index_path, index=False)
+    # visualize the independent index
+    visualize_independent_index(total_df)
